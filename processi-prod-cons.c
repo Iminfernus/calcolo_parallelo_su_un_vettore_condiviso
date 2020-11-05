@@ -13,8 +13,8 @@
 
 int inizializza_semafori()
 {
-    int sem_id = /* TBD: usare semget() per allocare un vettore,
-                  *      con una coppia di semafori */
+    int sem_id = semget(IPC_PRIVATE, 2, IPC_CREAT | 0644);
+
 
     if (sem_id < 0)
     {
@@ -24,7 +24,8 @@ int inizializza_semafori()
 
     /* Valori iniziali: 0 (messaggio disponibile), 1 (spazio disponibile) */
 
-    /* TBD: inizializzare i semafori */
+    semctl(sem_id, MESSAGGIO_DISP, SETVAL, 0);
+    semctl(sem_id, SPAZIO_DISP, SETVAL, 1);
 
     return sem_id;
 }
@@ -52,10 +53,11 @@ void figlio(int *vettore,
         }
     }
 
-    printf("Figlio: Il minimo locale è %d\n", minimo);
+    Wait_Sem(sem_id, SPAZIO_DISP);
 
     *buffer = minimo;
 
+	Signal_Sem(sem_id, MESSAGGIO_DISP);
 }
 
 void padre(int *buffer,
@@ -70,15 +72,23 @@ void padre(int *buffer,
 
     for (int i = 0; i < NUM_PROCESSI; i++)
     {
+    	Wait_Sem(sem_id, MESSAGGIO_DISP);
+    	
         if( *buffer < minimo ) {
 
             minimo = *buffer;
         }
+        Signal_Sem(sem_id, SPAZIO_DISP);
     }
 
     /* Attesa terminazione processi figli */
 
-    /* TBD: Utilizzare wait() per attendere la terminazione dei 10 figli */
+      for (int i = 0; i < NUM_PROCESSI; i++)
+    {
+
+        wait(NULL);
+    }
+
     
 
     /* Risultato finale */
